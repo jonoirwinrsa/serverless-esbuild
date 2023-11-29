@@ -7,7 +7,7 @@ import { uniq } from 'ramda';
 
 import type EsbuildServerlessPlugin from './index';
 import { asArray, assertIsString, isESM, isString } from './helper';
-import type { EsbuildOptions, FileBuildResult, FunctionBuildResult, BuildContext } from './types';
+import type { EsbuildOptions, FileBuildResult, FunctionBuildResult } from './types';
 import { trimExtension } from './utils';
 
 const getStringArray = (input: unknown): string[] => asArray(input).filter(isString);
@@ -102,15 +102,7 @@ export async function bundle(this: EsbuildServerlessPlugin): Promise<void> {
 
     const pkg = await import('esbuild');
 
-    type ContextFn = (opts: typeof options) => Promise<BuildContext>;
-    type WithContext = typeof pkg & { context?: ContextFn };
-    const context = await (pkg as WithContext).context?.(options);
-
-    let result = await context?.rebuild();
-
-    if (!result) {
-      result = await pkg.build(options);
-    }
+    const result = await pkg.build?.(options);
 
     if (config.metafile) {
       fs.writeFileSync(
@@ -119,7 +111,7 @@ export async function bundle(this: EsbuildServerlessPlugin): Promise<void> {
       );
     }
 
-    return { bundlePath, entry, result, context };
+    return { bundlePath, entry, result };
   };
 
   // Files can contain multiple handlers for multiple functions, we want to get only the unique ones
